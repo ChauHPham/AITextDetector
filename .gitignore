@@ -1,0 +1,28 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+.venv*/
+env/
+venv/
+
+# caches / logs
+logs/
+wandb/
+.cache/
+.checkpoints/
+
+# data & models
+data/*.zip
+data/*.json
+data/*.jsonl
+data/*.csv
+models/*
+!models/.gitkeep
+
+# os
+.DS_Store
+Thumbs.db
