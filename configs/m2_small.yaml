@@ -1,0 +1,20 @@
+# Optimized config for M2 Mac with 1k-10k samples
+# Training time: ~5-15 minutes
+data_path: data/dataset.csv
+base_model: roberta-base
+save_dir: models/ai_detector
+
+max_length: 256
+batch_size: 16  # Larger batch for smaller dataset
+num_epochs: 3   # More epochs since dataset is smaller
+lr: 5e-5
+weight_decay: 0.01
+logging_steps: 10
+eval_strategy: epoch
+seed: 42
+gradient_accumulation_steps: 1
+fp16: false  # M2 Mac doesn't have CUDA, so no FP16
+warmup_ratio: 0.1  # Add warmup for stability
+save_total_limit: 2
+save_steps: 0
+dataloader_num_workers: 0  # macOS requires 0 to avoid threading issues

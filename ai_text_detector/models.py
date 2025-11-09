@@ -1,3 +1,9 @@
+import os
+
+# Disable tokenizer parallelism and MPS on macOS
+if os.getenv("TOKENIZERS_PARALLELISM") is None:
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 class DetectorModel:

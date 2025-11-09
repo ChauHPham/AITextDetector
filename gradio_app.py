@@ -1,6 +1,24 @@
+import os
+import sys
+
+# Fix macOS MPS issues - MUST be before ANY torch/transformers imports
+if sys.platform == "darwin":  # macOS
+    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ["OMP_NUM_THREADS"] = "1"
+    os.environ["PYTORCH_ENABLE_MPS"] = "0"  # Explicitly disable MPS
+
 import gradio as gr
 import torch
-import os
+
+# Disable MPS after torch import
+if sys.platform == "darwin":
+    try:
+        torch.backends.mps.enabled = False
+        torch.set_default_device("cpu")
+    except:
+        pass
+
 from ai_text_detector.models import DetectorModel
 from ai_text_detector.datasets import DatasetLoader
 
@@ -13,18 +31,47 @@ def load_model():
     global model, tokenizer
     
     model_path = "models/ai_detector"
+    
+    # Check if model directory exists AND has model files
+    has_model = False
     if os.path.exists(model_path):
-        print(f"Loading trained model from {model_path}")
-        model = DetectorModel.load(model_path)
-        tokenizer = model.tokenizer
+        # Check for required model files
+        required_files = ["config.json", "pytorch_model.bin"]
+        has_model = all(os.path.exists(os.path.join(model_path, f)) for f in required_files)
+    
+    if has_model:
+        try:
+            print(f"Loading trained model from {model_path}")
+            model = DetectorModel.load(model_path)
+            tokenizer = model.tokenizer
+        except Exception as e:
+            print(f"Failed to load model: {e}")
+            print("Using base RoBERTa model instead.")
+            model = DetectorModel("roberta-base")
+            tokenizer = model.tokenizer
     else:
         print("No trained model found. Using base RoBERTa model for demo.")
         # Use a base model for demonstration
         model = DetectorModel("roberta-base")
         tokenizer = model.tokenizer
 
+# Load model lazily (on first use) to avoid startup issues
+_model_loaded = False
+
+def ensure_model_loaded():
+    """Load model if not already loaded"""
+    global model, tokenizer, _model_loaded
+    if not _model_loaded:
+        load_model()
+        _model_loaded = True
+
 def detect_text(text):
     """Detect if text is AI-generated or human-written"""
+    global model, tokenizer
+    
+    # Load model on first use
+    ensure_model_loaded()
+    
     if not text.strip():
         return "Please enter some text to analyze."
     
@@ -58,10 +105,8 @@ def detect_text(text):
     except Exception as e:
         return f"Error processing text: {str(e)}"
 
-# Load model on startup
-load_model()
-
-# Create Gradio interface
+# Create Gradio interface (model will load on first detection)
+print("Starting Gradio app... Model will load on first use.")
 with gr.Blocks(title="AI Text Detector", theme=gr.themes.Soft()) as app:
     gr.Markdown("# 🔍 AI Text Detector")
     gr.Markdown("Paste any text below to detect if it was written by AI or a human.")
