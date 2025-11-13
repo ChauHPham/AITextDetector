@@ -36,7 +36,35 @@
 
 Deploy your app permanently to Hugging Face Spaces for free!
 
-### Option 1: Using Gradio CLI
+### Option 1: Deploy from Google Colab
+
+**Perfect for Mac M2 users** - deploy directly from Colab!
+
+```python
+# 1. Install dependencies
+!pip install -q gradio huggingface_hub
+
+# 2. Clone your repo (if not already done)
+!git clone https://github.com/ChauHPham/AITextDetector.git
+%cd AITextDetector
+
+# 3. Login to Hugging Face (you'll need a token)
+# Get your token from: https://huggingface.co/settings/tokens
+from huggingface_hub import login
+login()  # Paste your token when prompted
+
+# 4. Deploy!
+!gradio deploy
+```
+
+**Follow the prompts:**
+1. Enter your Hugging Face username
+2. Choose/create a Space name (e.g., `ai-text-detector`)
+3. Wait for deployment (~5-10 minutes)
+
+Your app will be live at: `https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME`
+
+### Option 2: Using Gradio CLI (Local)
 
 ```bash
 # Install gradio if not already installed
