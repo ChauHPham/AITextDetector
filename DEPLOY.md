@@ -79,7 +79,7 @@ Follow the prompts to:
 2. Choose/create a Space
 3. Deploy!
 
-### Option 2: Manual Deployment
+### Option 3: Manual Deployment
 
 1. Create a new Space on [Hugging Face Spaces](https://huggingface.co/spaces)
 2. Choose "Gradio" as the SDK
