@@ -110,12 +110,65 @@ class DetectorModel:
                     self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
                     self.model = self.model.to("cpu")
             else:
-                # Non-macOS: standard loading
-                self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-                config = AutoConfig.from_pretrained(model_name)
-                self.model = DesklibAIDetectionModel.from_pretrained(model_name)
+                # Non-macOS (Colab/Linux): standard loading
+                try:
+                    print(f"Loading Desklib model from {model_name}...")
+                    self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+                    config = AutoConfig.from_pretrained(model_name)
+                    
+                    # Try loading with from_pretrained first
+                    try:
+                        self.model = DesklibAIDetectionModel.from_pretrained(
+                            model_name,
+                            torch_dtype=torch.float32,
+                            low_cpu_mem_usage=True
+                        )
+                        print("✅ Desklib model loaded via from_pretrained!")
+                    except Exception as load_err:
+                        # If from_pretrained fails, manually load weights
+                        print(f"⚠️  from_pretrained failed: {load_err}")
+                        print("Trying manual weight loading...")
+                        
+                        # Create model instance
+                        self.model = DesklibAIDetectionModel(config)
+                        
+                        # Load weights manually
+                        from transformers.utils import cached_file
+                        from safetensors.torch import load_file as safetensors_load
+                        
+                        # Try safetensors first
+                        try:
+                            safetensors_path = cached_file(model_name, "model.safetensors")
+                            state_dict = safetensors_load(safetensors_path)
+                            self.model.load_state_dict(state_dict, strict=False)
+                            print("✅ Loaded weights from safetensors!")
+                        except:
+                            # Fallback to pytorch_model.bin
+                            try:
+                                bin_path = cached_file(model_name, "pytorch_model.bin")
+                                state_dict = torch.load(bin_path, map_location="cpu")
+                                self.model.load_state_dict(state_dict, strict=False)
+                                print("✅ Loaded weights from pytorch_model.bin!")
+                            except Exception as bin_err:
+                                raise Exception(f"Failed to load weights: {bin_err}")
+                    
+                    # Ensure model is on CPU
+                    self.model = self.model.to("cpu")
+                    self.model.eval()
+                    print("✅ Desklib model loaded successfully!")
+                except Exception as e:
+                    print(f"⚠️  Failed to load Desklib model: {e}")
+                    print("Falling back to RoBERTa base model...")
+                    import traceback
+                    traceback.print_exc()
+                    # Fallback to RoBERTa
+                    self.use_desklib = False
+                    self.model = AutoModelForSequenceClassification.from_pretrained("roberta-base", num_labels=2)
+                    self.tokenizer = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
+                    self.model = self.model.to("cpu")
         else:
-            # Fallback to standard classification model
+            # Fallback to standard classification model (when use_desklib=False)
+            print(f"Loading standard model: {model_name}")
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
             self.use_desklib = False

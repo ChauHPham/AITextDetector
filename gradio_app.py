@@ -50,10 +50,20 @@ def load_model():
             model = DetectorModel("desklib/ai-text-detector-v1.01", use_desklib=True)
             tokenizer = model.tokenizer
     else:
-        print("No trained model found. Using Desklib pre-trained AI detector model.")
+        print("No trained model found. Loading Desklib pre-trained AI detector model...")
         # Use Desklib pre-trained model (no training needed!)
-        model = DetectorModel("desklib/ai-text-detector-v1.01", use_desklib=True)
-        tokenizer = model.tokenizer
+        try:
+            model = DetectorModel("desklib/ai-text-detector-v1.01", use_desklib=True)
+            tokenizer = model.tokenizer
+            print("✅ Desklib model loaded successfully!")
+        except Exception as e:
+            print(f"⚠️  Failed to load Desklib model: {e}")
+            print("Falling back to RoBERTa base model (will need training for good results)...")
+            import traceback
+            traceback.print_exc()
+            # Fallback to RoBERTa
+            model = DetectorModel("roberta-base", use_desklib=False)
+            tokenizer = model.tokenizer
 
 # Load model lazily (on first use) to avoid startup issues
 _model_loaded = False
